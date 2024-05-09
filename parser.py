@@ -11,37 +11,21 @@ headers = {
 # id155572 - Васильев Денис Юрьевич
 # id112663 - Картак Вадим Михайлович
 userid = "155572"
-##i = 1
-##while True:
-##    try:
-##        url = "https://www.elibrary.ru/author_profile.asp?authorid=112663"
-##        req = requests.get(url, headers=headers)
-##        src = req.text
-##        print(src)
-##        break
-##    except Exception:
-##        print(i)
-##        i += 1
-
-##time.sleep(5)
-
-
 i = 1
 while True:
     try:
         payload = {
             "authorid": userid,
-            # "pagenum": "6"
         }
         url = "https://www.elibrary.ru/author_items_print.asp"
         req = requests.get(url, data=payload, headers=headers)
         if req.status_code == 200:
             soup = BeautifulSoup(req.text, 'lxml')
-            #print(soup)
             table = soup.find_all('table')[1]
-            #            print(table)
             publications = table.find_all("tr")
+            publication_list = list()
             for publication in publications:
+                place = publication.text
                 print(publication)
                 print()
             break
