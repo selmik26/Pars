@@ -32,9 +32,7 @@ def connect(userid):
             print(e)
             print()
             i += 1
-
-
-#            time.sleep(20)
+            time.sleep(20)
 
 
 def extraction(soup):
