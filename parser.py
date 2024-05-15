@@ -79,6 +79,11 @@ for userid in FileID:
         input("Нажмите enter чтобы продолжить\n")
         soup = connect(userid)
         time.sleep(20)
+    while soup.title == None:
+        print("Ваш IP-адрес забанили. Поменяйте IP")
+        input("Нажмите enter чтобы продолжить\n")
+        soup = connect(userid)
+        time.sleep(20)
     publication_list = extraction(soup)
     FilePub.write('_' * 50 + userid + '_' * 50 + '\n')
     FilePub.write(str(len(publication_list)) + " публикаций\n")
