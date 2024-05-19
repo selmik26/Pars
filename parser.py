@@ -23,14 +23,15 @@ def connect(userid):
                 if soup.title == None:
                     print("Ваш IP-адрес забанили. Поменяйте IP")
                     input("Нажмите enter чтобы продолжить\n")
+                    i = 1
                     time.sleep(20)
                     continue
                 if soup.title.text == 'Тест Тьюринга':
                     print("Зайдите на сайт и пройдите Тест Тьюринга")
                     input("Нажмите enter чтобы продолжить\n")
+                    i = 1
                     time.sleep(20)
                     continue
-                req.close()
             else:
                 print("Ошибка подключения", req.status_code)
                 exit()
@@ -58,7 +59,7 @@ def extraction(soup):
                 ind = 0
             name = inf_text[ind].strip()
             author = "No authors"
-            place = inf_text[ind + 1].strip()
+            place = inf_text[ind + 1].strip().replace("\xa0", " ").replace("\r\n", "").replace('\u200c', ' ')
         else:
             if inf_text[0] == "\n":
                 ind = 1
@@ -73,21 +74,6 @@ def extraction(soup):
             "place": place
         })
     return pub_list
-
-
-def check(soup):
-    while soup.title == None:
-        print("Ваш IP-адрес забанили. Поменяйте IP")
-        input("Нажмите enter чтобы продолжить\n")
-        soup = connect(userid)
-        time.sleep(20)
-    while soup.title.text == 'Тест Тьюринга':
-        print("Зайдите на сайт и пройдите Тест Тьюринга")
-        input("Нажмите enter чтобы продолжить\n")
-        soup = connect(userid)
-        time.sleep(20)
-    return soup
-
 
 FileID = open("ID.txt", 'r')
 FilePub = open("publications.txt", 'w')
@@ -106,6 +92,7 @@ for userid in FileID:
         FilePub.write(str(i + 1) + " " + publication_list[i]['name'] + "\n")
         FilePub.write(publication_list[i]['author'] + "\n")
         FilePub.write(publication_list[i]['place'] + "\n")
+    time.sleep(20)
 
 FileID.close()
 FilePub.close()
