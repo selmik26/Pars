@@ -98,8 +98,6 @@ for userid in FileID:
 
     soup = connect(userid)
 
-    soup = check(soup)
-
     publication_list = extraction(soup)
 
     FilePub.write('_' * 50 + userid + '_' * 50 + '\n')
