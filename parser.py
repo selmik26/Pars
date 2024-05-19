@@ -5,8 +5,7 @@ import time
 
 def connect(userid):
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-        'Connection': 'close'
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
     }
 
     payload = {
@@ -21,6 +20,16 @@ def connect(userid):
             req = requests.get(url, data=payload, headers=headers)
             if req.status_code == 200:
                 soup = BeautifulSoup(req.text, 'lxml')
+                if soup.title == None:
+                    print("Ваш IP-адрес забанили. Поменяйте IP")
+                    input("Нажмите enter чтобы продолжить\n")
+                    time.sleep(20)
+                    continue
+                if soup.title.text == 'Тест Тьюринга':
+                    print("Зайдите на сайт и пройдите Тест Тьюринга")
+                    input("Нажмите enter чтобы продолжить\n")
+                    time.sleep(20)
+                    continue
                 req.close()
             else:
                 print("Ошибка подключения", req.status_code)
@@ -57,7 +66,7 @@ def extraction(soup):
                 ind = 0
             name = inf_text[ind].strip()
             author = inf_text[ind + 1].strip()
-            place = inf_text[ind + 2].strip().replace("\xa0", " ").replace("\r\n", "")
+            place = inf_text[ind + 2].strip().replace("\xa0", " ").replace("\r\n", "").replace('\u200c', ' ')
         pub_list.append({
             "name": name,
             "author": author,
@@ -66,23 +75,33 @@ def extraction(soup):
     return pub_list
 
 
-FileID = open("ID.txt", 'r')
-FilePub = open("publications.txt", 'w')
-for userid in FileID:
-    userid = userid.strip()
-    print(userid)
-    soup = connect(userid)
-    while soup.title.text == 'Тест Тьюринга':
-        print("Зайдите на сайт и пройдите Тест Тьюринга")
-        input("Нажмите enter чтобы продолжить\n")
-        soup = connect(userid)
-        time.sleep(20)
+def check(soup):
     while soup.title == None:
         print("Ваш IP-адрес забанили. Поменяйте IP")
         input("Нажмите enter чтобы продолжить\n")
         soup = connect(userid)
         time.sleep(20)
+    while soup.title.text == 'Тест Тьюринга':
+        print("Зайдите на сайт и пройдите Тест Тьюринга")
+        input("Нажмите enter чтобы продолжить\n")
+        soup = connect(userid)
+        time.sleep(20)
+    return soup
+
+
+FileID = open("ID.txt", 'r')
+FilePub = open("publications.txt", 'w')
+
+for userid in FileID:
+    userid = userid.strip()
+    print(userid)
+
+    soup = connect(userid)
+
+    soup = check(soup)
+
     publication_list = extraction(soup)
+
     FilePub.write('_' * 50 + userid + '_' * 50 + '\n')
     FilePub.write(str(len(publication_list)) + " публикаций\n")
     for i in range(len(publication_list)):
