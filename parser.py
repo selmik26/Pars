@@ -20,13 +20,13 @@ def connect(payload, url):
                     print("Ваш IP-адрес забанили. Поменяйте IP")
                     input("Нажмите enter чтобы продолжить\n")
                     i = 1
-                    time.sleep(20)
+                    #                    time.sleep(20)
                     continue
                 if soup.title.text == 'Тест Тьюринга':
                     print("Зайдите на сайт и пройдите Тест Тьюринга")
                     input("Нажмите enter чтобы продолжить\n")
                     i = 1
-                    time.sleep(20)
+                    #                    time.sleep(20)
                     continue
             else:
                 print("Ошибка подключения", req.status_code)
@@ -58,7 +58,7 @@ def extraction(soup):
     page = int(page.find('td', {"class": "redref"}).b.text)
     print("страница 1 из ", math.ceil(page / 20), "\n")
     pub_list += extract_pub(soup)
-    for i in range(2, math.ceil(111 / 20) + 1):
+    for i in range(2, math.ceil(page / 20) + 1):
         print("страница ", i, " из ", math.ceil(page / 20), "\n")
         payload = {
             "authorid": "112663",
