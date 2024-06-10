@@ -1,18 +1,14 @@
 import requests
 from bs4 import BeautifulSoup
 import time
+import math
 
 
-def connect(userid):
+def connect(payload, url):
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+        "Connection": "close",
     }
-
-    payload = {
-        "authorid": userid,
-    }
-
-    url = "https://www.elibrary.ru/author_items_print.asp"
 
     i = 1
     while True:
@@ -36,67 +32,74 @@ def connect(userid):
                 print("Ошибка подключения", req.status_code)
                 exit()
             return soup
-        except Exception as e:
+        except Exception as error:
             print("Попытка", i)
             print("Ошибка")
-            print(e)
+            print(error)
             print()
             i += 1
-            time.sleep(20)
+
+
+##            time.sleep(20)
+
+
+def extract_pub(soup):
+    list_id = []
+    table = soup.find("table", {"id": "restab"})
+    pub = table.find_all('tr', {"valign": "middle"})[1:]
+    for i in range(len(pub)):
+        list_id.append(pub[i]["id"][3:])
+    return list_id
 
 
 def extraction(soup):
     pub_list = list()
-    table = soup.find_all('table')[1]
-    publications = table.find_all("tr")
-    for pub in publications:
-        inf = pub.find_all('td')[1]
-        inf_text = list(inf.strings)
-        if inf.find('i') == None:
-            if inf_text[0] == "\n":
-                ind = 1
-            else:
-                ind = 0
-            name = inf_text[ind].strip()
-            author = "No authors"
-            place = inf_text[ind + 1].strip().replace("\xa0", " ").replace("\r\n", "").replace('\u200c', ' ')
-        else:
-            if inf_text[0] == "\n":
-                ind = 1
-            else:
-                ind = 0
-            name = inf_text[ind].strip()
-            author = inf_text[ind + 1].strip()
-            place = inf_text[ind + 2].strip().replace("\xa0", " ").replace("\r\n", "").replace('\u200c', ' ')
-        pub_list.append({
-            "name": name,
-            "author": author,
-            "place": place
-        })
+    page = soup.find("table", {"border": "0", "cellpadding": "0", "cellspacing": "3", "width": "480"})
+    page = int(page.find('td', {"class": "redref"}).b.text)
+    print("страница 1 из ", math.ceil(page / 20), "\n")
+    pub_list += extract_pub(soup)
+    for i in range(2, math.ceil(111 / 20) + 1):
+        print("страница ", i, " из ", math.ceil(page / 20), "\n")
+        payload = {
+            "authorid": "112663",
+            "pagenum": i,
+            "show_option": "1",
+        }
+        url = "https://www.elibrary.ru/author_items.asp"
+        soup = connect(payload, url)
+        pub_list += extract_pub(soup)
+
     return pub_list
 
+
 FileID = open("ID.txt", 'r')
-FilePub = open("publications.txt", 'w')
+FilePub = open("publications.csv", 'w')
 
 for userid in FileID:
     userid = userid.strip()
     print(userid)
 
-    soup = connect(userid)
+    payload = {
+        "authorid": "112663",
+        "pagenum": "1",
+        "show_option": "1",
+    }
+    url = "https://www.elibrary.ru/author_items.asp"
+    soup = connect(payload, url)
 
     publication_list = extraction(soup)
 
-    FilePub.write('_' * 50 + userid + '_' * 50 + '\n')
-    FilePub.write(str(len(publication_list)) + " публикаций\n")
     for i in range(len(publication_list)):
-        FilePub.write(str(i + 1) + " " + publication_list[i]['name'] + "\n")
-        FilePub.write(publication_list[i]['author'] + "\n")
-        FilePub.write(publication_list[i]['place'] + "\n")
-    time.sleep(20)
+        FilePub.write(userid + ";" + publication_list[i] + ";" + "\n")
+#    time.sleep(20)
 
 FileID.close()
 FilePub.close()
 
-# id155572 - Васильев Денис Юрьевич
-# id112663 - Картак Вадим Михайлович
+# количество страниц
+# soup.find_all("table",{"border":"0", "cellpadding": "0", "cellspacing":"3", "width":"480"})
+
+# публикации
+# soup.find_all("table",{"id": "restab"})
+
 
