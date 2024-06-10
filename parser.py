@@ -48,7 +48,8 @@ def extract_pub(soup):
     table = soup.find("table", {"id": "restab"})
     pub = table.find_all('tr', {"valign": "middle"})[1:]
     for i in range(len(pub)):
-        list_id.append(pub[i]["id"][3:])
+        if pub[i]["id"][0] == "a":
+            list_id.append(pub[i]["id"][3:])
     return list_id
 
 
