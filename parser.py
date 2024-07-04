@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import math
+import random
 
 def connect(payload, url):
     headers = {
@@ -19,13 +20,13 @@ def connect(payload, url):
                     print("Ваш IP-адрес забанили. Поменяйте IP")
                     input("Нажмите enter чтобы продолжить\n")
                     i = 1
-#                    time.sleep(20)
+                    time.sleep(random.randint(5,15))
                     continue
                 if soup.title.text == 'Тест Тьюринга':
                     print("Зайдите на сайт и пройдите Тест Тьюринга")
                     input("Нажмите enter чтобы продолжить\n")
                     i = 1
-#                    time.sleep(20)
+                    time.sleep(random.randint(5,15))
                     continue
             else:
                 print("Ошибка подключения", req.status_code)
@@ -37,7 +38,7 @@ def connect(payload, url):
             print(error)
             print()
             i += 1
-#            time.sleep(20)
+            time.sleep(random.randint(5,15))
 
 
 def extract_pub(soup):
@@ -53,8 +54,10 @@ def extract_pub(soup):
         inf_text = list(filter(lambda a: a != "", map(lambda x: x.replace("\xa0", " ").replace("\r", "").replace("\n", "").strip(), inf.strings)))
         name = inf_text[0]
         if inf.find('i') == None:
+            author = "нет автора"
             information = " ".join(inf_text[1:])
         else:
+            author = inf_text[1]
             information = " ".join(inf_text[2:])
         if "Версии:" in information:
             information = information[:information.find("Версии:") - 1]
@@ -95,6 +98,7 @@ def extract_pub(soup):
         pub_list.append({
             "id": id_pub,
             "name": name,
+            "author": author,
             "resource": resource,
             "tom": tom,
             "number": number,
@@ -127,7 +131,7 @@ FileID = open("ID.txt", 'r')
 FilePub = open("ID_pub.csv", 'w')
 FilePub.close()
 FilePub = open("ID_pub.csv", 'a+')
-FilePub.write("id пользователя;id публикации;название;источник;том;номер;год;страницы;\n")
+FilePub.write("id пользователя;id публикации;название;авторы;источник;том;номер;год;страницы;\n")
 FilePub.close()
 
 
@@ -146,8 +150,8 @@ for userid in FileID:
     publication_list = extraction(soup)
     FilePub = open("ID_pub.csv", 'a+')
     for inf in publication_list:
-        FilePub.write(userid + ";" + inf["id"] + ";" + inf["name"] + ";" + inf["resource"] + ";" + inf["tom"] + ";" + inf["number"] + ";" + inf["data"] + ";" + inf["page"] + ";" + "\n")
+        FilePub.write(userid + ";" + inf["id"] + ";" + inf["name"] + ";" + inf["author"] + ";" + inf["resource"] + ";" + inf["tom"] + ";" + inf["number"] + ";" + inf["data"] + ";" + inf["page"] + ";" + "\n")
     FilePub.close()
-#    time.sleep(20)
+    time.sleep(random.randint(5,15))
 
 FileID.close()
