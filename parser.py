@@ -4,6 +4,7 @@ import time
 import math
 import random
 
+
 def connect(payload, url):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
@@ -20,13 +21,13 @@ def connect(payload, url):
                     print("Ваш IP-адрес забанили. Поменяйте IP")
                     input("Нажмите enter чтобы продолжить\n")
                     i = 1
-                    time.sleep(random.randint(5,15))
+                    time.sleep(random.randint(5, 15))
                     continue
                 if soup.title.text == 'Тест Тьюринга':
                     print("Зайдите на сайт и пройдите Тест Тьюринга")
                     input("Нажмите enter чтобы продолжить\n")
                     i = 1
-                    time.sleep(random.randint(5,15))
+                    time.sleep(random.randint(5, 15))
                     continue
             else:
                 print("Ошибка подключения", req.status_code)
@@ -38,12 +39,12 @@ def connect(payload, url):
             print(error)
             print()
             i += 1
-            time.sleep(random.randint(5,15))
+            time.sleep(random.randint(5, 15))
 
 
 def extract_pub(soup):
     pub_list = list()
-    table = soup.find("table",{"id": "restab"})
+    table = soup.find("table", {"id": "restab"})
     pub = table.find_all('tr', {"valign": "middle"})[1:]
     for i in range(len(pub)):
         if pub[i]["id"][0] == "a":
@@ -51,7 +52,9 @@ def extract_pub(soup):
         else:
             continue
         inf = pub[i].find_all('td')[1]
-        inf_text = list(filter(lambda a: a != "", map(lambda x: x.replace("\xa0", " ").replace("\r", "").replace("\n", "").strip(), inf.strings)))
+        inf_text = list(filter(lambda a: a != "",
+                               map(lambda x: x.replace("\xa0", " ").replace("\r", "").replace("\n", "").strip(),
+                                   inf.strings)))
         name = inf_text[0]
         if inf.find('i') == None:
             author = "нет автора"
@@ -63,14 +66,14 @@ def extract_pub(soup):
             information = information[:information.find("Версии:") - 1]
         while "  " in information:
             information = information.replace("  ", " ")
-        information = information.replace(";",".")
+        information = information.replace(";", ".")
         resource = ""
         tom = ""
         number = ""
         data = ""
         page = ""
         if information[:13] == "Свидетельство":
-            data = information[information.find(",") + 8 : information.find(",") + 12]
+            data = information[information.find(",") + 8: information.find(",") + 12]
             resource = information.replace(information[information.find(","):information.find(",") + 12], "")
         else:
             information = information.split(".")
@@ -104,26 +107,72 @@ def extract_pub(soup):
             "number": number,
             "data": data,
             "page": page,
+            "BAK": "не включен",
         })
     return pub_list
 
 
-def extraction(soup):
+def extraction(soup, userid):
     pub_list = list()
-    page = soup.find("table",{"border":"0", "cellpadding": "0", "cellspacing":"3", "width":"480"})
-    page = int(page.find('td',{"class": "redref"}).b.text)
-    print("страница 1 из ", math.ceil(page/20) ,"\n")
+    page = soup.find("table", {"border": "0", "cellpadding": "0", "cellspacing": "3", "width": "480"})
+    page = int(page.find('td', {"class": "redref"}).b.text)
+    print("страница 1 из ", math.ceil(page / 20), "\n")
     pub_list += extract_pub(soup)
-    for i in range(2, math.ceil(page/20) + 1):
-        print("страница ", i, " из ", math.ceil(page/20) ,"\n")
+    for i in range(2, math.ceil(page / 20) + 1):
+        print("страница ", i, " из ", math.ceil(page / 20), "\n")
         payload = {
-            "authorid": "112663",
+            "authorid": userid,
             "pagenum": i,
             "show_option": "1",
         }
         url = "https://www.elibrary.ru/author_items.asp"
         soup = connect(payload, url)
         pub_list += extract_pub(soup)
+    return pub_list
+
+
+def BAK_extract(soup):
+    BAK_list = list()
+    table = soup.find("table", {"id": "restab"})
+    pub = table.find_all('tr', {"valign": "middle"})[1:]
+    for i in range(len(pub)):
+        if pub[i]["id"][0] == "a":
+            BAK_list.append(pub[i]["id"][3:])
+        else:
+            continue
+    return BAK_list
+
+
+def BAK(soup, userid, pub_list):
+    BAK_list = list()
+    print("нахождение статьей вкюченных в BAK\n")
+    payload = {
+        "authorid": userid,
+        "pagenum": "1",
+        "show_option": "5",
+    }
+    url = "https://www.elibrary.ru/author_items.asp"
+    soup = connect(payload, url)
+    page = soup.find("table", {"border": "0", "cellpadding": "0", "cellspacing": "3", "width": "480"})
+    page = int(page.find('td', {"class": "redref"}).b.text)
+    print("страница 1 из ", math.ceil(page / 20), "\n")
+    BAK_list += BAK_extract(soup)
+    for i in range(2, math.ceil(page / 20) + 1):
+        print("страница ", i, " из ", math.ceil(page / 20), "\n")
+        payload = {
+            "authorid": userid,
+            "pagenum": i,
+            "show_option": "5",
+        }
+        url = "https://www.elibrary.ru/author_items.asp"
+        soup = connect(payload, url)
+        BAK_list += BAK_extract(soup)
+    j = 0
+    print("Обработка\n")
+    for i in range(len(BAK_list)):
+        while (BAK_list[i] != pub_list[j]["id"]):
+            j += 1
+        pub_list[j]["BAK"] = "включен"
     return pub_list
 
 
@@ -134,8 +183,6 @@ FilePub = open("ID_pub.csv", 'a+')
 FilePub.write("id пользователя;id публикации;название;авторы;источник;том;номер;год;страницы;\n")
 FilePub.close()
 
-
-
 for userid in FileID:
     userid = userid.strip()
     print(userid)
@@ -145,14 +192,18 @@ for userid in FileID:
         "pagenum": "1",
         "show_option": "1",
     }
-
     url = "https://www.elibrary.ru/author_items.asp"
     soup = connect(payload, url)
-    publication_list = extraction(soup)
+    publication_list = extraction(soup, userid)
+    publication_list = BAK(soup, userid, publication_list)
+
     FilePub = open("ID_pub.csv", 'a+')
+
     for inf in publication_list:
-        FilePub.write(userid + ";" + inf["id"] + ";" + inf["name"] + ";" + inf["author"] + ";" + inf["resource"] + ";" + inf["tom"] + ";" + inf["number"] + ";" + inf["data"] + ";" + inf["page"] + ";" + "\n")
+        FilePub.write(
+            userid + ";" + inf["id"] + ";" + inf["name"] + ";" + inf["author"] + ";" + inf["resource"] + ";" + inf[
+                "tom"] + ";" + inf["number"] + ";" + inf["data"] + ";" + inf["page"] + ";" + "\n")
     FilePub.close()
-    time.sleep(random.randint(5,15))
+    time.sleep(random.randint(5, 15))
 
 FileID.close()
