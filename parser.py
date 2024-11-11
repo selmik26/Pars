@@ -4,7 +4,7 @@ import time
 import math
 import random
 
-sl_tm = 15
+sl_tm = 8
 headers = {
     "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     "Connection": "close",
@@ -172,7 +172,13 @@ def BAK(payload, pub_list):
     return pub_list
 
 
-FileID = open("ID.txt", 'r')
+while True:
+    try:
+        FileID = open("ID.txt", 'r')
+        break
+    except Exception:
+        print("Перенесите к exe файл ID.txt, в котором хранится ID пользователей")
+        input("Нажмите Enter, чтобы продолжить\n")
 FilePub = open("ID_pub.csv", 'w', encoding='utf-8')
 FilePub.close()
 FilePub = open("ID_pub.csv", 'a+', encoding='utf-8')
@@ -241,5 +247,5 @@ for userid in FileID:
         FilePub.close()
     time.sleep(sl_tm)
 FileID.close()
-input("Нажмите Enter чтобы завершить")
+input("Нажмите Enter, чтобы завершить")
 
