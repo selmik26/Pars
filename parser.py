@@ -4,34 +4,43 @@ import time
 import math
 import random
 
+sl_tm = 15
+headers = {
+    "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    "Connection": "close",
+}
 
-def connect(payload, url):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-        "Connection": "close",
-    }
+
+def connect(payload):
+    url = "https://www.elibrary.ru/author_items.asp"
 
     i = 1
     while True:
         try:
-            req = requests.get(url, data=payload, headers=headers)
+            req = s.get(url, data=payload, headers=headers)
             if req.status_code == 200:
                 soup = BeautifulSoup(req.text, 'lxml')
                 if soup.title == None:
                     print("Ваш IP-адрес забанили. Поменяйте IP")
                     input("Нажмите enter чтобы продолжить\n")
                     i = 1
-                    time.sleep(random.randint(5, 15))
+                    time.sleep(sl_tm)
                     continue
                 if soup.title.text == 'Тест Тьюринга':
                     print("Зайдите на сайт и пройдите Тест Тьюринга")
                     input("Нажмите enter чтобы продолжить\n")
                     i = 1
-                    time.sleep(random.randint(5, 15))
+                    time.sleep(sl_tm)
                     continue
             else:
                 print("Ошибка подключения", req.status_code)
-                exit()
+                buf = input("Прододжить? (y/n)")
+                while (not (buf == "y" or buf == "n")):
+                    buf = input("Прододжить? (y/n)")
+                if (buf == "y"):
+                    continue
+                else:
+                    exit()
             return soup
         except Exception as error:
             print("Попытка", i)
@@ -39,10 +48,10 @@ def connect(payload, url):
             print(error)
             print()
             i += 1
-            time.sleep(random.randint(5, 15))
+            time.sleep(sl_tm)
 
 
-def extract_pub(soup):
+def pub_extract(soup):
     pub_list = list()
     table = soup.find("table", {"id": "restab"})
     pub = table.find_all('tr', {"valign": "middle"})[1:]
@@ -112,22 +121,18 @@ def extract_pub(soup):
     return pub_list
 
 
-def extraction(soup, userid):
+def extraction(soup, payload):
     pub_list = list()
     page = soup.find("table", {"border": "0", "cellpadding": "0", "cellspacing": "3", "width": "480"})
+    if (page == None): return pub_list
     page = int(page.find('td', {"class": "redref"}).b.text)
     print("страница 1 из ", math.ceil(page / 20), "\n")
-    pub_list += extract_pub(soup)
+    pub_list += pub_extract(soup)
     for i in range(2, math.ceil(page / 20) + 1):
         print("страница ", i, " из ", math.ceil(page / 20), "\n")
-        payload = {
-            "authorid": userid,
-            "pagenum": i,
-            "show_option": "1",
-        }
-        url = "https://www.elibrary.ru/author_items.asp"
-        soup = connect(payload, url)
-        pub_list += extract_pub(soup)
+        payload["pagenum"] = i
+        soup = connect(payload)
+        pub_list += pub_extract(soup)
     return pub_list
 
 
@@ -143,29 +148,20 @@ def BAK_extract(soup):
     return BAK_list
 
 
-def BAK(soup, userid, pub_list):
+def BAK(payload, pub_list):
     BAK_list = list()
     print("нахождение статьей вкюченных в BAK\n")
-    payload = {
-        "authorid": userid,
-        "pagenum": "1",
-        "show_option": "5",
-    }
-    url = "https://www.elibrary.ru/author_items.asp"
-    soup = connect(payload, url)
+    payload["show_option"] = "5"
+    soup = connect(payload)
     page = soup.find("table", {"border": "0", "cellpadding": "0", "cellspacing": "3", "width": "480"})
+    if (page == None): return BAK_list
     page = int(page.find('td', {"class": "redref"}).b.text)
     print("страница 1 из ", math.ceil(page / 20), "\n")
     BAK_list += BAK_extract(soup)
     for i in range(2, math.ceil(page / 20) + 1):
         print("страница ", i, " из ", math.ceil(page / 20), "\n")
-        payload = {
-            "authorid": userid,
-            "pagenum": i,
-            "show_option": "5",
-        }
-        url = "https://www.elibrary.ru/author_items.asp"
-        soup = connect(payload, url)
+        payload["pagenum"] = i
+        soup = connect(payload)
         BAK_list += BAK_extract(soup)
     j = 0
     print("Обработка\n")
@@ -177,33 +173,73 @@ def BAK(soup, userid, pub_list):
 
 
 FileID = open("ID.txt", 'r')
-FilePub = open("ID_pub.csv", 'w')
+FilePub = open("ID_pub.csv", 'w', encoding='utf-8')
 FilePub.close()
-FilePub = open("ID_pub.csv", 'a+')
-FilePub.write("id пользователя;id публикации;название;авторы;источник;том;номер;год;страницы;\n")
+FilePub = open("ID_pub.csv", 'a+', encoding='utf-8')
+FilePub.write("id пользователя;id публикации;название;авторы;источник;том;номер;год;страницы;ВАК\n")
 FilePub.close()
+
+years = []
+res = input("Включит фильтр по годам? (y/n)\n").lower()
+while res != 'y' and res != 'n':
+    res = input("Включит фильтр по годам? (y/n)\n").lower()
+if res == 'y':
+    print("Введите года через пробел, без лишних символов")
+    years = input().strip().split()
+    while True:
+        try:
+            years = list(map(int, years))
+            assert (len(list(filter(lambda x: x < 3000, years))) == len(years))
+            break
+        except Exception:
+            print("Введите года через пробел, без лишних символов")
+            years = input().strip().split()
+
+payload = {
+    "pagenum": "1",
+    "show_option": "1",
+}
+
+if res == "y":
+    payload["year_order"] = "1"
+    for i in range(len(years)):
+        payload["years_" + str(years[i])] = "on"
+
+global s
+print("Настройка")
+i = 1
+while True:
+    try:
+        s = requests.Session()
+        r = s.get("https://www.elibrary.ru/defaultx.asp", headers=headers)
+        break
+    except Exception as e:
+        print("Попытка", i)
+        print(e)
+        print()
+        i += 1
+        s.close()
+        time.sleep(10)
 
 for userid in FileID:
     userid = userid.strip()
+    payload["authorid"] = userid
     print(userid)
+    soup = connect(payload)
+    publication_list = extraction(soup, payload)
+    if publication_list != []:
+        publication_list = BAK(payload, publication_list)
 
-    payload = {
-        "authorid": userid,
-        "pagenum": "1",
-        "show_option": "1",
-    }
-    url = "https://www.elibrary.ru/author_items.asp"
-    soup = connect(payload, url)
-    publication_list = extraction(soup, userid)
-    publication_list = BAK(soup, userid, publication_list)
+        FilePub = open("ID_pub.csv", 'a+', encoding='utf-8')
 
-    FilePub = open("ID_pub.csv", 'a+')
-
-    for inf in publication_list:
-        FilePub.write(
-            userid + ";" + inf["id"] + ";" + inf["name"] + ";" + inf["author"] + ";" + inf["resource"] + ";" + inf[
-                "tom"] + ";" + inf["number"] + ";" + inf["data"] + ";" + inf["page"] + ";" + "\n")
-    FilePub.close()
-    time.sleep(random.randint(5, 15))
-
+        for inf in publication_list:
+            FilePub.write(userid + ";" + inf["id"] + ";")
+            FilePub.write(inf["name"] + ";" + inf["author"] + ";")
+            FilePub.write(inf["resource"] + ";" + inf["tom"] + ";")
+            FilePub.write(inf["number"] + ";" + inf["data"] + ";")
+            FilePub.write(inf["page"] + ";" + inf["BAK"] + ";" + "\n")
+        FilePub.close()
+    time.sleep(sl_tm)
 FileID.close()
+input("Нажмите Enter чтобы завершить")
+
